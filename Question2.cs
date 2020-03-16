@@ -222,8 +222,9 @@ namespace ConsoleApp2
                 yList.Add(rect.y1);
                 yList.Add(rect.y2);
             }
-            DeWeight(yList);
             yList.Sort();
+            DeWeight(yList);
+            
 
             int coveredRects = 0;
             int currEnter = 0;
