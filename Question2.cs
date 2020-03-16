@@ -9,6 +9,7 @@ namespace ConsoleApp2
         int covers = 0;
         SegmentTree lChild = null;
         SegmentTree rChild = null;
+        HashSet<int> coveredRects = new HashSet<int>();
         public SegmentTree(int n) : this(0, n - 1) { }
 
         public SegmentTree(int from, int to)
@@ -17,10 +18,11 @@ namespace ConsoleApp2
             this.to = to;
         }
 
-        public void Insert(int from, int to)
+        public void Insert(int from, int to, int index)
         {
             if(from <= this.from && to >= this.to)
             {
+                coveredRects.Add(index);
                 ++covers;
             }
             else
@@ -32,7 +34,7 @@ namespace ConsoleApp2
                     {
                         lChild = new SegmentTree(this.from, mid);
                     }
-                    lChild.Insert(from, to);
+                    lChild.Insert(from, to, index);
                 }
                 if(to > mid)
                 {
@@ -40,15 +42,16 @@ namespace ConsoleApp2
                     {
                         rChild = new SegmentTree(mid, this.to);
                     }
-                    rChild.Insert(from, to);
+                    rChild.Insert(from, to, index);
                 }
             }
         }
 
-        public void Remove(int from, int to)
+        public void Remove(int from, int to, int index)
         {
             if(from <= this.from && to >= this.to)
             {
+                coveredRects.Remove(index);
                 --covers;
             }
             else
@@ -56,33 +59,32 @@ namespace ConsoleApp2
                 int mid = (this.from + this.to) >> 1;
                 if(from < mid)
                 {
-                    lChild.Remove(from, to);
+                    lChild.Remove(from, to, index);
                 }
                 if(to > mid)
                 {
-                    rChild.Remove(from, to);
+                    rChild.Remove(from, to, index);
                 }
             }
         }
 
-        public bool Query(int from, int to)
+        public void Query(int from, int to, HashSet<int> result)
         {
             if (covers > 0)
             {
-                return true;
+                result.UnionWith(coveredRects);
             }
             else
             {
                 int mid = (this.from + this.to) >> 1;
-                if(from < mid && lChild != null && lChild.Query(from, to))
+                if(from < mid && lChild != null)
                 {
-                    return true;
+                    lChild.Query(from, to, result);
                 }
-                if(to > mid && rChild != null && rChild.Query(from, to))
+                if(to > mid && rChild != null)
                 {
-                    return true;
+                    rChild.Query(from, to, result);
                 }
-                return false;
             }
         }
     }
@@ -92,6 +94,7 @@ namespace ConsoleApp2
         public float x1, y1; // left bottom
         public float x2, y2; // top right
         public int index;
+        public bool covered = false;
         public Rectangle(float[] values)
         {
             x1 = values[0];
@@ -103,6 +106,11 @@ namespace ConsoleApp2
         public void SetIndex(int i)
         {
             this.index = i;
+        }
+
+        public void SetCovered()
+        {
+            covered = true;
         }
     }
 
@@ -220,9 +228,8 @@ namespace ConsoleApp2
             int coveredRects = 0;
             int currEnter = 0;
             int currExit = 0;
-            int currRects = 0;
-            bool pad = false;
             var segTree = new SegmentTree(yList.Count);
+            HashSet<int> covered = new HashSet<int>();
             while(currEnter < rectangles.Length)
             {
                 int enterIndex = enterOrder[currEnter];
@@ -233,25 +240,31 @@ namespace ConsoleApp2
                 {
                     int from = BinarySearch(yList, exitRect.y1);
                     int to = BinarySearch(yList, exitRect.y2);
-                    segTree.Remove(from, to);
+                    segTree.Remove(from, to, exitIndex);
                     ++currExit;
-                    --currRects;
-                    pad = false;
                 }
                 else
                 {
                     int from = BinarySearch(yList, enterRect.y1);
                     int to = BinarySearch(yList, enterRect.y2);
-                    if (segTree.Query(from, to))
+                    covered.Clear();
+                    segTree.Query(from, to, covered);
+                    if(covered.Count > 0)
                     {
-                        coveredRects += pad ? 2 : 1;
+                        enterRect.covered = true;
+                        ++coveredRects;
+                        foreach(int index in covered)
+                        {
+                            var rect = rectangles[index];
+                            if(!rect.covered)
+                            {
+                                rect.covered = true;
+                                ++coveredRects;
+                            }
+                        }
                     }
-                    segTree.Insert(from, to);
+                    segTree.Insert(from, to, enterIndex);
                     ++currEnter;
-                    if(++currRects == 1)
-                    {
-                        pad = true;
-                    }
                 }
             }
             Console.WriteLine(coveredRects);
