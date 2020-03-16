@@ -16,6 +16,10 @@ namespace ConsoleApp1
                     if(d[j])
                     {
                         d[i] = d[i] || (words.Contains(str.Substring(j, i - j)));
+                        if(d[i])
+                        {
+                            break;
+                        }
                     }
                 }
             }
